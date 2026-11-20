@@ -15,51 +15,8 @@ import { ApolloServer } from "@apollo/server";
 import { typeDefs } from "../../schema.js";
 import { resolvers } from "../../resolvers.js";
 import type { Context } from "../../types.js";
+import { createMockContext } from "../../resolvers/test-helpers.js";
 
-function createMockContext(overrides: Partial<Context> = {}): Context {
-  const dataLoader = {
-    campaigns: { load: vi.fn() },
-    contributions: { load: vi.fn() },
-    users: { load: vi.fn() },
-    campaignContributors: { load: vi.fn() },
-    campaignContributions: { load: vi.fn() },
-    campaignUpdates: { load: vi.fn() },
-    campaignMilestones: { load: vi.fn() },
-    campaignsByStatus: { load: vi.fn() },
-    userCampaigns: { load: vi.fn() },
-    userContributions: { load: vi.fn() },
-  };
-  return {
-    cache: {
-      get: vi.fn().mockResolvedValue(null),
-      set: vi.fn().mockResolvedValue(undefined),
-      del: vi.fn().mockResolvedValue(undefined),
-      delPattern: vi.fn().mockResolvedValue(undefined),
-    },
-    contractService: {
-      getCampaign: vi.fn(),
-      getCampaigns: vi.fn(),
-      getCampaignCount: vi.fn(),
-      getTrendingCampaigns: vi.fn(),
-      searchCampaigns: vi.fn(),
-      getUser: vi.fn(),
-      getStats: vi.fn(),
-      verifySignature: vi.fn(),
-      createCampaign: vi.fn(),
-      updateCampaign: vi.fn(),
-      recordContribution: vi.fn(),
-    },
-    dataLoader: dataLoader as any,
-    pubsub: {
-      publish: vi.fn().mockResolvedValue(undefined),
-      asyncIterator: vi.fn(),
-    } as any,
-    authService: { generateToken: vi.fn() } as any,
-    user: undefined,
-    redis: {} as any,
-    ...overrides,
-  } as Context;
-}
 
 const sampleCampaign = (overrides: Record<string, any> = {}) => ({
   id: "camp_1",
