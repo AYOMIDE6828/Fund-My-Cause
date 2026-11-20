@@ -11,6 +11,7 @@ import { createRedisClient } from "./redis.js";
 import { CacheService } from "./services/cache.js";
 import { ContractService } from "./services/contract.js";
 import { createDataLoaders } from "./services/dataloader.js";
+import { readEnv } from "./config/env.js";
 import { getPubSub } from "./services/pubsub.js";
 import { AuthService } from "./services/auth.js";
 import { RateLimiterService } from "./services/rate-limiter.js";
@@ -90,9 +91,10 @@ async function startServer() {
     const pubsub = getPubSub();
     const authService = new AuthService(VALIDATED_JWT_SECRET);
     const rateLimiter = new RateLimiterService(redis);
+    const env = readEnv();
     const queryCostAnalyzer = new QueryCostAnalyzer({
-      maxCost: parseInt(process.env.GRAPHQL_QUERY_COST_MAX || "1000"),
-      maxDepth: parseInt(process.env.GRAPHQL_QUERY_DEPTH_MAX || "15"),
+      maxCost: env.queryCostMax,
+      maxDepth: env.queryDepthMax,
     });
 
     logger.info("Services initialized");
