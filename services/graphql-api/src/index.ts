@@ -18,6 +18,8 @@ import { resolvers } from "./resolvers.js";
 import { logger, requestLogger } from "./logger.js";
 import { resolveTraceId, TRACE_ID_HEADER } from "@fund-my-cause/shared-utils";
 import { requestIdMiddleware } from "./middleware/request-id.js";
+import { securityHeaders } from "./middleware/security-headers.js";
+import { armForcedExit, SHUTDOWN_TIMEOUT_MS } from "./shutdown.js";
 import type { Context } from "./types.js";
 
 const PORT = process.env.GRAPHQL_PORT
@@ -110,6 +112,7 @@ async function startServer() {
     };
 
     app.use(cors(corsOptions));
+    app.use(securityHeaders);
     app.use(express.json({ limit: "10mb" }));
     // Request-ID middleware must run before any handler that logs so every
     // log line emitted for a request carries its trace_id.
@@ -383,6 +386,7 @@ async function startServer() {
     const signals = ["SIGTERM", "SIGINT"] as const;
     signals.forEach((signal) => {
       process.on(signal, async () => {
+        armForcedExit(SHUTDOWN_TIMEOUT_MS);
         logger.info(
           { signal },
           "Shutdown signal received, stopping gracefully",
