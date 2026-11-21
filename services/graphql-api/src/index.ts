@@ -10,11 +10,9 @@ import { parse } from "graphql";
 import { createRedisClient } from "./redis.js";
 import { CacheService } from "./services/cache.js";
 import { ContractService } from "./services/contract.js";
-import { createDataLoaders } from "./services/dataloader.js";
+import { createServices } from "./container.js";
+import { readEnv } from "./config/env.js";
 import { getPubSub } from "./services/pubsub.js";
-import { AuthService } from "./services/auth.js";
-import { RateLimiterService } from "./services/rate-limiter.js";
-import { QueryCostAnalyzer } from "./services/query-cost-analyzer.js";
 import { typeDefs } from "./schema.js";
 import { resolvers } from "./resolvers.js";
 import { logger, requestLogger } from "./logger.js";
@@ -86,13 +84,13 @@ async function startServer() {
           : "Test SDF Network ; September 2015",
       registryContractId: REGISTRY_CONTRACT_ID || undefined,
     });
-    const dataLoaders = createDataLoaders(contractService);
     const pubsub = getPubSub();
-    const authService = new AuthService(VALIDATED_JWT_SECRET);
-    const rateLimiter = new RateLimiterService(redis);
-    const queryCostAnalyzer = new QueryCostAnalyzer({
-      maxCost: parseInt(process.env.GRAPHQL_QUERY_COST_MAX || "1000"),
-      maxDepth: parseInt(process.env.GRAPHQL_QUERY_DEPTH_MAX || "15"),
+    const env = readEnv();
+    const { dataLoaders, authService, rateLimiter, queryCostAnalyzer } = createServices({
+      contractService,
+      redis,
+      jwtSecret: VALIDATED_JWT_SECRET,
+      queryCost: { maxCost: env.queryCostMax, maxDepth: env.queryDepthMax },
     });
 
     logger.info("Services initialized");
