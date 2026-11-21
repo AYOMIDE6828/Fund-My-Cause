@@ -84,10 +84,22 @@ export interface PageResult<T> {
 // HMAC helpers (Node.js crypto, available in both ESM and CJS)
 // ---------------------------------------------------------------------------
 
-import { createHmac } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 
 function sign(payload: string, secret: string): string {
   return createHmac("sha256", secret).update(payload).digest("base64url");
+}
+
+/**
+ * Constant-time HMAC comparison.  Prevents timing-based side-channel attacks
+ * where an attacker could infer the expected MAC byte-by-byte by measuring
+ * response latency differences.
+ */
+function safeEqual(a: string, b: string): boolean {
+  const aBuf = Buffer.from(a, "utf8");
+  const bBuf = Buffer.from(b, "utf8");
+  if (aBuf.length !== bBuf.length) return false;
+  return timingSafeEqual(aBuf, bBuf);
 }
 
 /**
@@ -129,10 +141,10 @@ export function decodeCursor(
   const encoded = cursor.slice(0, dotIndex);
   const mac = cursor.slice(dotIndex + 1);
 
-  // Verify HMAC before touching the payload (constant-time-ish; good enough for
-  // server-to-server cursor validation).
+  // Verify HMAC with constant-time comparison to prevent timing side-channel
+  // attacks where an attacker could infer the expected MAC byte-by-byte.
   const expectedMac = sign(encoded, secret);
-  if (mac !== expectedMac) {
+  if (!safeEqual(mac, expectedMac)) {
     throw new CursorError(
       "Invalid cursor: signature mismatch (possible tampering)",
     );
