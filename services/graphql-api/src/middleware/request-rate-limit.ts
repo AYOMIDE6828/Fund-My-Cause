@@ -45,6 +45,14 @@ export class RequestRateLimiter {
   checkApiKey(apiKey: string): { allowed: boolean; retryAfter: number } {
     return this.consume(`key:${apiKey}`, this.config.maxRequestsPerApiKey);
   }
+
+  /**
+   * Per-route-group limit for one IP, e.g. "mutations" or "queries" (#1691).
+   * Each group keeps its own bucket, so one busy group cannot use up another's.
+   */
+  checkRouteGroup(group: string, ip: string, limit: number): { allowed: boolean; retryAfter: number } {
+    return this.consume(`group:${group}:ip:${ip}`, limit);
+  }
 }
 
 function resolveClientIp(req: any, trustProxy: boolean): string {
