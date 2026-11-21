@@ -75,11 +75,6 @@ impl From<common::CommonError> for ContractError {
             // No exact match for InvalidInput in the registry error set;
             // Unauthorized is the closest generic catch-all.
             common::CommonError::InvalidInput => ContractError::Unauthorized,
-            common::CommonError::NotInitialized => ContractError::NotInitialized,
-            // The registry has no dedicated Paused or Overflow variant; both
-            // fall back to the Unauthorized catch-all (issue #1705).
-            common::CommonError::Paused => ContractError::Unauthorized,
-            common::CommonError::Overflow => ContractError::Unauthorized,
         }
     }
 }

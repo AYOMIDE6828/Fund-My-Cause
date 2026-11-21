@@ -9,6 +9,7 @@ import {
 import { decodeCursor, CursorError, buildPage } from "./cursor.js";
 import { enforceMutationRateLimit } from "./shared.js";
 import { validateInput } from "../validation/index.js";
+import { requireRecord } from "../services/require-record.js";
 import {
   createCampaignSchema,
   updateCampaignSchema,
@@ -26,12 +27,11 @@ export const campaignResolvers: IResolvers<any, Context> = {
       const cached = await context.cache.get(cacheKey);
       if (cached) return cached;
 
-      const campaign = await context.contractService.getCampaign(id);
-      if (!campaign) {
-        throw new GraphQLError(`Campaign not found: ${id}`, {
-          extensions: { code: "NOT_FOUND" },
-        });
-      }
+      const campaign = requireRecord(
+        await context.contractService.getCampaign(id),
+        "Campaign",
+        id,
+      );
       await context.cache.set(cacheKey, campaign, CACHE_TTL.campaign);
       return campaign;
     },

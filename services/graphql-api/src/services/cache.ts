@@ -80,6 +80,21 @@ export class CacheService {
   }
 
   /**
+   * Return the cached value, or run `load`, cache its result with `ttl`, and
+   * return it. Read-heavy resolvers use this to avoid repeating the same
+   * fetch on every request (#1700).
+   */
+  async getOrSet<T>(key: string, ttl: number, load: () => Promise<T>): Promise<T> {
+    const cached = await this.get<T>(key);
+    if (cached !== null) {
+      return cached;
+    }
+    const value = await load();
+    await this.set(key, value, ttl);
+    return value;
+  }
+
+  /**
    * Set value in cache with TTL
    */
   async set<T>(key: string, value: T, ttl: number): Promise<void> {

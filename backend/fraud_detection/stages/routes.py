@@ -7,6 +7,8 @@ orchestrator (app construction + lifespan only).
 
 from __future__ import annotations
 
+import os
+import sys
 import time
 from typing import Optional
 
@@ -15,7 +17,19 @@ from fastapi import BackgroundTasks, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationError
 
-from error_schema import BadRequestError, NotFoundError, UnprocessableEntityError
+# ``backend/shared`` is not an installable package; add it to the path so
+# error_schema can be imported without duplicating it here.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "shared"))
+from error_schema import (  # noqa: E402
+    BadRequestError,
+    NotFoundError,
+    UnprocessableEntityError,
+    ERROR_RESPONSE_SCHEMA,
+    bad_request,
+    not_found,
+    unprocessable_entity,
+)
+
 from repository import (
     ContributionEvent,
     FlagReason,
@@ -25,9 +39,8 @@ from repository import (
 )
 from scoring import run_full_scan
 
-from stages.contribution_service import ContributionService
-from stages.idempotency import IDEMPOTENCY_KEY_HEADER
-from stages.scoring_worker import get_metrics
+from stages.idempotency import IDEMPOTENCY_KEY_HEADER, IDEMPOTENCY_KEY_MAX_LEN, IdempotencyStore
+from stages.scoring_worker import ContributionPayload, get_metrics, scoring_queue
 
 log: structlog.BoundLogger = structlog.get_logger("fraud_detection")
 
@@ -38,13 +51,13 @@ _IDEMPOTENCY_STORE = IdempotencyStore()
 import repository as _repo
 _CONTRIBUTIONS = _repo._CONTRIBUTIONS
 
-# Shared error schema references used by the OpenAPI spec generation so that
+# Shared error schema responses used by the OpenAPI spec generation so that
 # every error response documented in the spec matches the runtime payloads
 # produced by the helpers in ``error_schema``.
 ERROR_SCHEMA_RESPONSES: dict[int, dict] = {
-    400: {"description": "Bad request", "content": {"application/json": {"schema": bad_request("").body_schema()}}},
-    404: {"description": "Not found", "content": {"application/json": {"schema": not_found("").body_schema()}}},
-    422: {"description": "Unprocessable entity", "content": {"application/json": {"schema": unprocessable_entity("").body_schema()}}},
+    400: {"description": "Bad request", "content": {"application/json": {"schema": ERROR_RESPONSE_SCHEMA}}},
+    404: {"description": "Not found", "content": {"application/json": {"schema": ERROR_RESPONSE_SCHEMA}}},
+    422: {"description": "Unprocessable entity", "content": {"application/json": {"schema": ERROR_RESPONSE_SCHEMA}}},
 }
 
 
